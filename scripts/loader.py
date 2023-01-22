@@ -10,6 +10,7 @@ class Loader():
         self.path = path
         self.data_paths_dict = self.make_data_paths_dict()
 
+    ## data paths dictionary ##
     def make_data_paths_dict(self):
         data_paths_dict = {} 
         for path_type in Path(self.path).iterdir():
@@ -26,6 +27,7 @@ class Loader():
                     continue
         return data_paths_dict
 
+    ## sample image path ##
     @property
     def sample_image_path(self):
         for class_name in self.data_paths_dict['train']:
@@ -33,6 +35,7 @@ class Loader():
                 print('\n', f'Sample image path: {path}')
                 return str(path)
     
+    ## class encoding ##
     @property
     def class_encoding(self):
         return self._class_encoding
@@ -47,19 +50,21 @@ class Loader():
         if data_type == 'train':
             encoding = {}
             for i, (class_name, paths) in enumerate(paths_per_class.items()):
-                encoding[class_name] = i
+                encoding[i] = class_name
                 encoded_classes += [i] * len(paths)
             self.class_encoding = encoding
         elif data_type == 'test':
             for i, (class_name, paths) in enumerate(paths_per_class.items()):
-                encoded_classes += [self.class_encoding[class_name]] * len(paths)
+                encoded_classes += [i] * len(paths)
         return encoded_classes
 
+    ## GLCM features ##
+    # make
     def make_glcm_features(self, data_type, feature_types = ['contrast'], save = False, save_tags = {}, *args, **kwargs):
         paths_per_class = self.data_paths_dict[data_type]
         features = {}
         names = []
-        counter = 0
+        init = True
         for paths in paths_per_class.values():
             for path in paths:
                 img = cv2.imread(str(path))
@@ -70,31 +75,33 @@ class Loader():
                     feature_values = graycoprops(glcm_matrix, feature_type)
                     feature_values_fltn = feature_values.flatten()
                     features[str(path)] += list(feature_values_fltn)
-                    if counter == 0: 
+                    if init: 
                         names += [f'{feature_type}_{k}'for k in range(len(feature_values_fltn))]
-                counter += 1
+                init = False
         if save:
             df = pd.DataFrame.from_dict(features, columns = names, orient = 'index')
             path = self.get_features_path('glcm', data_type, save_tags)
             df.to_csv(path)
         return features, names
 
-    def load_features(self, path):
-        dict = pd.read_csv(path, index_col = 0).to_dict('split')
-        return {name: values for name, values in zip(dict['index'], dict['data'])}, dict['columns']
+    # load or make if not already made
+    def get_glcm_features(self, data_type, feature_types = ['contrast'], save = False, save_tags = {}, *args, **kwargs):
+        path = self.get_features_path('glcm', data_type, save_tags)
+        if path.exists():
+            print('\n', 'GLCM features already created. Loading...')
+            return self.load_features(path)
+        else:
+            print('\n', 'Creating GLCM features...')
+            return self.make_glcm_features(data_type, feature_types, save, save_tags, *args, **kwargs)
 
+    ## utilities ##
     def get_features_path(self, type, data_type, tags):
         tags = [f'{name}:{values}' for name, values in tags.items()]
         return Path(self.path).parent / 'features' / '_'.join([type, data_type] + tags)
 
-    def get_glcm_features(self, data_type, feature_types = ['contrast'], save = False, save_tags = {}, *args, **kwargs):
-        path = self.get_features_path('glcm', data_type, save_tags)
-        if path.exists():
-            print('\n', 'Features already created. Loading...')
-            return self.load_features(path)
-        else:
-            print('\n', 'Creating features...')
-            return self.make_glcm_features(data_type, feature_types, save, save_tags, *args, **kwargs)
+    def load_features(self, path):
+        dict = pd.read_csv(path, index_col = 0).to_dict('split')
+        return {name: values for name, values in zip(dict['index'], dict['data'])}, dict['columns']
 
 
         
@@ -105,17 +112,9 @@ if __name__ == '__main__':
         'distances': [1, 2],
         'angles': [0, np.pi/4]
     }
-    # sample_path = loader.sample_image_path
-    # feature_types = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
-    # data_type = 'train'
-    # features, names = loader.get_glcm_features(data_type, feature_types, **kwargs)
-
-    # print(sample_path)
-    # print(features[sample_path])
-    # print(names)
-    path = Path(path)
-    
-    print(path.parent / 'features')
+    feature_types = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
+    data_type = 'train'
+    features, names = loader.get_glcm_features(data_type, feature_types, **kwargs)
 
     
     
