@@ -41,8 +41,14 @@ model = RandomForestClassifier(random_state = 0)
 model.fit(x_train.values, y_train)
 
 # calculate and save accuracies
-scorer = Scorer(model, x_test, y_test, loader.class_encoding)
-accuracies = scorer.get_accuracies()
+save_path = '/Users/bartlomiejsobieski/Osobisty/VSC/Intro_to_img_processing/IPCV_project_2/scores/scores.csv'
+save = True
+save_tags_score = {
+    'feature_source': 'gabor', 
+    'parameters': '_'.join([f'{name}:{values}' for name, values in kwargs.items()])}
+
+scorer = Scorer(model, x_test, y_test, loader.class_encoding, save_path)
+accuracies = scorer.get_accuracies(save, save_tags_score)
 
 print('\n')
 print('## Accuracies ##')
