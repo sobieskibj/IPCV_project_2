@@ -1,5 +1,5 @@
 from pathlib import Path
-from skimage.feature import graycomatrix, graycoprops
+from skimage.feature import graycomatrix, graycoprops, local_binary_pattern
 from skimage.filters import gabor_kernel
 from scipy import ndimage as ndi
 import numpy as np
@@ -25,7 +25,7 @@ class Loader():
                     print(f'{i+1}. {class_name}')
                     data_paths_dict[type][class_name] = [*path_class.iterdir()]
                 else:
-                    print(f'{i+1}. skipped due to wrong format')
+                    print(f'{i+1}. Skipped due to wrong format')
                     continue
         return data_paths_dict
 
@@ -131,7 +131,7 @@ class Loader():
             print('\n', 'Creating Gabor features...')
             return self.make_gabor_features(data_type, save, save_tags, *args, **kwargs)
 
-    # make filters
+    # make gabor filters
     def make_filters(self, n_angles, n_sigmas, frequencies):
         filters = []
         for theta in range(n_angles):
@@ -143,6 +143,38 @@ class Loader():
                     filters.append(filter)
         return filters
         
+    ## LBP features
+    # make
+    def make_lbp_features(self, data_type, n_bins, save = False, save_tags = {}, *args, **kwargs):
+        paths_per_class = self.data_paths_dict[data_type]
+        features = {}
+        names = []
+        init = True
+        for paths in paths_per_class.values():
+            for path in paths:
+                img = cv2.imread(str(path))
+                img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                lbp = local_binary_pattern(img_gray, **kwargs)
+                hist, _ = np.histogram(lbp, density = True, bins = n_bins, range = (0, n_bins))
+                features[str(path)] = list(hist)
+                if init: 
+                    names += [f'lbp_hist_bin:{i}' for i in range(n_bins)]
+                    init = False
+        if save:
+            df = pd.DataFrame.from_dict(features, columns = names, orient = 'index')
+            path = self.get_features_path('lbp', data_type, save_tags)
+            df.to_csv(path)
+        return features, names
+
+    # load or make if not already made
+    def get_lbp_features(self, data_type, n_bins = 20, save = False, save_tags = {}, *args, **kwargs):
+        path = self.get_features_path('lbp', data_type, save_tags)
+        if path.exists():
+            print('\n', 'LBP features already created. Loading...')
+            return self.load_features(path)
+        else:
+            print('\n', 'Creating LBP features...')
+            return self.make_lbp_features(data_type, n_bins, save, save_tags, *args, **kwargs)
 
     ## utilities ##
     def get_features_path(self, type, data_type, tags):
