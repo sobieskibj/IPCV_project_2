@@ -11,50 +11,57 @@ path = '/Users/bartlomiejsobieski/Osobisty/VSC/Intro_to_img_processing/IPCV_proj
 loader = Loader(path)
 pp = pprint.PrettyPrinter(indent = 4)
 
-kwargs = {
-    'distances': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-    'angles': [0, np.pi/4, np.pi/2, 3*np.pi/4, np.pi, 5*np.pi/4]
-}
-feature_types = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
+values_distances = [[i for i in range(1, k + 1)] for k in range(1, 13)]
+values_angles = [[i * np.pi/4 for i in range(k + 1)] for k in range(1, 13)]
 
-# get train and test features
-features_train, names_train = loader.get_glcm_features(
-    'train', 
-    feature_types, 
-    save = True, 
-    save_tags = kwargs, 
-    **kwargs)
-features_test, names_test = loader.get_glcm_features(
-    'test', 
-    feature_types, 
-    save = True, 
-    save_tags = kwargs, 
-    **kwargs)
+for distances in values_distances:
+    for angles in values_angles:
+        kwargs = {
+            'distances': distances,
+            'angles': angles
+        }
 
-# prepare data
-x_train = pd.DataFrame.from_dict(features_train, columns = names_train, orient = 'index')
-y_train = loader.get_encoded_classes('train')
 
-x_test = pd.DataFrame.from_dict(features_test, columns = names_train, orient = 'index')
-y_test = loader.get_encoded_classes('test')
+        feature_types = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 
-# fit model
-model = RandomForestClassifier(random_state = 0)
-model.fit(x_train.values, y_train)
+        # get train and test features
+        features_train, names_train = loader.get_glcm_features(
+            'train', 
+            feature_types, 
+            save = True, 
+            save_tags = kwargs, 
+            **kwargs)
+        features_test, names_test = loader.get_glcm_features(
+            'test', 
+            feature_types, 
+            save = True, 
+            save_tags = kwargs, 
+            **kwargs)
 
-# calculate and save accuracies
-save_path = '/Users/bartlomiejsobieski/Osobisty/VSC/Intro_to_img_processing/IPCV_project_2/scores/scores.csv'
-save = True
-save_tags_score = {
-    'feature_source': 'glcm', 
-    'parameters': '_'.join([f'{name}:{values}' for name, values in kwargs.items()])}
+        # prepare data
+        x_train = pd.DataFrame.from_dict(features_train, columns = names_train, orient = 'index')
+        y_train = loader.get_encoded_classes('train')
 
-scorer = Scorer(model, x_test, y_test, loader.class_encoding, save_path)
-accuracies = scorer.get_accuracies(save, save_tags_score)
+        x_test = pd.DataFrame.from_dict(features_test, columns = names_train, orient = 'index')
+        y_test = loader.get_encoded_classes('test')
 
-print('\n')
-print('## Accuracies ##')
-pp.pprint(accuracies)
+        # fit model
+        model = RandomForestClassifier(random_state = 0)
+        model.fit(x_train.values, y_train)
+
+        # calculate and save accuracies
+        save_path = '/Users/bartlomiejsobieski/Osobisty/VSC/Intro_to_img_processing/IPCV_project_2/scores/scores.csv'
+        save = True
+        save_tags_score = {
+            'feature_source': 'glcm', 
+            'parameters': '_'.join([f'{name}:{values}' for name, values in kwargs.items()])}
+
+        scorer = Scorer(model, x_test, y_test, loader.class_encoding, save_path)
+        accuracies = scorer.get_accuracies(save, save_tags_score)
+
+        print('\n')
+        print('## Accuracies ##')
+        pp.pprint(accuracies)
 
 
 
