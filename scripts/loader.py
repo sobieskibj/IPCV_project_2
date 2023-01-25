@@ -163,7 +163,10 @@ class Loader():
         if save:
             df = pd.DataFrame.from_dict(features, columns = names, orient = 'index')
             path = self.get_features_path('lbp', data_type, save_tags)
-            df.to_csv(path)
+            try:
+                df.to_csv(path)
+            except OSError:
+                print('Filename too long, save failed.')
         return features, names
 
     # load or make if not already made
@@ -176,9 +179,72 @@ class Loader():
             print('\n', 'Creating LBP features...')
             return self.make_lbp_features(data_type, n_bins, save, save_tags, *args, **kwargs)
 
+    # Histogram-based features
+    # make
+    def make_hist_features(self, data_type, save = False, save_tags = {}, *args, **kwargs):
+        paths_per_class = self.data_paths_dict[data_type]
+        features = {}
+        names = ['mean', 'variance', 'skewness', 'kurtosis', 'energy', 'entropy']
+        for paths in paths_per_class.values():
+            for path in paths:
+                img = cv2.imread(str(path))
+                img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+                n_bins = 256
+                hist, _ = np.histogram(img_gray, density = True, bins = n_bins)
+                bin_values = np.arange(0, 256, 1)
+                mean = self.get_mean(hist, bin_values)
+                variance = self.get_variance(hist, bin_values, mean)
+                skewness = self.get_skewness(hist, bin_values, mean, variance)
+                kurtosis = self.get_kurtosis(hist, bin_values, mean, variance)
+                energy = self.get_energy(hist)
+                entropy = self.get_entropy(hist)
+                features[str(path)] = [mean, variance, skewness, kurtosis, energy, entropy]
+        if save:
+            df = pd.DataFrame.from_dict(features, columns = names, orient = 'index')
+            path = self.get_features_path('hist', data_type, save_tags)
+            try:
+                df.to_csv(path)
+            except OSError:
+                print('Filename too long, save failed.')
+        return features, names
+    
+    def get_hist_features(self, data_type, save = False, save_tags = {}, *args, **kwargs):
+        path = self.get_features_path('hist', data_type, save_tags)
+        if path.exists():
+            print('\n', 'Histogram-based features already created. Loading...')
+            return self.load_features(path)
+        else:
+            print('\n', 'Creating histogram-based features...')
+            return self.make_hist_features(data_type, save, save_tags, *args, **kwargs)
+
+    # load or make if not already made
+
+    # histogram statistics utilities
+    def get_mean(self, prob_density_estimate, bin_values):
+        return np.average(prob_density_estimate, weights = bin_values)
+
+    def get_variance(self, prob_density_estimate, bin_values, mean):
+        weights = np.array([(e - mean)**2 for e in bin_values])
+        return np.sum(prob_density_estimate * weights)
+    
+    def get_skewness(self, prob_density_estimate, bin_values, mean, variance):
+        weights = np.array([(e - mean)**3 for e in bin_values])
+        return variance ** (-3/2) * np.sum(weights * prob_density_estimate)
+    
+    def get_kurtosis(self, prob_density_estimate, bin_values, mean, variance):
+        weights = np.array([(e - mean)**4 for e in bin_values])
+        return variance ** (-3/2) * np.sum(weights * prob_density_estimate)
+
+    def get_energy(self, prob_density_estimate):
+        return np.sum(prob_density_estimate**2)
+
+    def get_entropy(self, prob_density_estimate):
+        return - np.sum(prob_density_estimate * np.log2(prob_density_estimate + 1))
+
     ## utilities ##
     def get_features_path(self, type, data_type, tags):
-        tags = [f'{name}:{values}' for name, values in tags.items()]
+        tags = [f'{name}:{values}' for name, values in tags.items()] \
+            if type != 'glcm' else [f'{name}:{len(values)}' for name, values in tags.items()]
         return Path(self.path).parent / 'features' / '_'.join([type, data_type] + tags)
 
     def load_features(self, path):
