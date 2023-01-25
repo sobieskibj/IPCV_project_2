@@ -139,4 +139,5 @@ for combination in combs:
     results[name] = accuracies
 
 results_all = pd.DataFrame.from_dict(results)
-print(results_all)
+print(results_all.round(3).iloc[:, :9].style.to_latex())
+print(results_all.round(3).iloc[:, 9:].style.to_latex())
