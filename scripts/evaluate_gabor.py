@@ -2,6 +2,7 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 import pandas as pd
 import pprint
+import random
 
 from loader import Loader
 from scorer import Scorer
@@ -11,9 +12,13 @@ path = '/Users/bartlomiejsobieski/Osobisty/VSC/Intro_to_img_processing/IPCV_proj
 loader = Loader(path)
 pp = pprint.PrettyPrinter(indent = 4)
 
-values_n_angles = [i for i in range(1, 9)]
-values_n_sigmas = [i for i in range(1, 9)]
+values_n_angles = [i for i in range(1, 6)]
+values_n_sigmas = [i for i in range(1, 6)]
 values_frequencies = [[0.05, 0.25], [0.05, 0.25, 0.5], [0.05, 0.25, 0.5, 0.75]]
+
+random.shuffle(values_n_angles)
+random.shuffle(values_n_sigmas)
+random.shuffle(values_frequencies)
 
 for n_angles in values_n_angles:
     for n_sigmas in values_n_sigmas:

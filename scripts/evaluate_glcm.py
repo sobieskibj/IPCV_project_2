@@ -2,6 +2,7 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 import pandas as pd
 import pprint
+import random
 
 from loader import Loader
 from scorer import Scorer
@@ -14,13 +15,15 @@ pp = pprint.PrettyPrinter(indent = 4)
 values_distances = [[i for i in range(1, k + 1)] for k in range(1, 13)]
 values_angles = [[i * np.pi/4 for i in range(k + 1)] for k in range(1, 13)]
 
+random.shuffle(values_distances)
+random.shuffle(values_angles)
+
 for distances in values_distances:
     for angles in values_angles:
         kwargs = {
             'distances': distances,
             'angles': angles
         }
-
 
         feature_types = ['contrast', 'dissimilarity', 'homogeneity', 'energy', 'correlation', 'ASM']
 

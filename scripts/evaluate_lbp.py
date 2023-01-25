@@ -2,6 +2,7 @@ from sklearn.ensemble import RandomForestClassifier
 import numpy as np
 import pandas as pd
 import pprint
+import random
 
 from loader import Loader
 from scorer import Scorer
@@ -14,6 +15,10 @@ pp = pprint.PrettyPrinter(indent = 4)
 values_P = [2**n for n in range(1, 9)]
 values_R = [2**n for n in range(1, 9)]
 values_n_bins = [10*i for i in range(1, 21)]
+
+random.shuffle(values_P)
+random.shuffle(values_R)
+random.shuffle(values_n_bins)
 
 for P in values_P:
     for R in values_R:
