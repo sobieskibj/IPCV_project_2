@@ -3,24 +3,27 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import ast
 
-def process_glcm_str(data_glcm):
+def process_glcm_str(data_glcm, short = True):
     all = {}
     for i, e in enumerate(data_glcm):
         splitted = [elem.split(':') for elem in e]
         values = {}
         for part in splitted:
-            values[part[0]] = len(ast.literal_eval(part[1]))
+            values[part[0]] = len(ast.literal_eval(part[1])) if short else ast.literal_eval(part[1])
         all[i] = values
     return all
 
-def process_gabor_str(data_gabor):
+def process_gabor_str(data_gabor, short = True):
     all = {}
     for i, e in enumerate(data_gabor):
         vals = [e[1], e[3], e[4]]
         splitted = [v.split(':') for v in vals]
         values = {}
         for part in splitted:
-            values[part[0]] = len(ast.literal_eval(part[1])) if isinstance(ast.literal_eval(part[1]), list) else int(part[1])
+            if short:
+                values[part[0]] = len(ast.literal_eval(part[1])) if isinstance(ast.literal_eval(part[1]), list) else int(part[1])
+            else:
+                values[part[0]] = ast.literal_eval(part[1])
         all[i] = values
     return all
 
@@ -108,3 +111,5 @@ if __name__ == '__main__':
     fig.suptitle("Accuracy in relation to different parameter values")
     
     plt.show()
+
+    print(lbp_vals)
